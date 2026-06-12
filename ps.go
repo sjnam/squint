@@ -462,9 +462,23 @@ func Msubst(F PS, c *big.Rat, n int) PS {
 //
 //	X = integ(X*F', 1)
 func Exp(F PS) PS {
-	X := mkPS(F.ctx)
+	D := Deriv(F)
+	return Fix(F.ctx, func(X PS) PS {
+		return Integ(rat(1, 1), Mul(X, D))
+	})
+}
+
+// Fix ties a recursive knot: it returns the series X satisfying
+// X = f(X). The function f receives a copy of X and builds the network
+// that produces X. The definition must be productive — f's network must
+// deliver its first term before demanding any input. Starting with
+// Integ, whose constant of integration is produced before any input is
+// demanded, guarantees this; that is how differential equations such as
+// X' = X (Exp) or tan' = 1 + tan² are solved as streams.
+func Fix(ctx context.Context, f func(PS) PS) PS {
+	X := mkPS(ctx)
 	XX := Split(X, 2)
-	go copyPS(Integ(rat(1, 1), Mul(XX[0], Deriv(F))), X)
+	go copyPS(f(XX[0]), X)
 	return XX[1]
 }
 

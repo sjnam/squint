@@ -59,6 +59,52 @@ func TestExp(t *testing.T) {
 		[]string{"1", "1", "1/2", "1/6", "1/24", "1/120", "1/720"})
 }
 
+// fixSinCos builds sin and cos as Fix does in cmd/squint:
+// cos = 1 - integ(sin), where sin = integ(cos).
+func fixSinCos(ctx context.Context) (sin, cos PS) {
+	C := Fix(ctx, func(C PS) PS {
+		return Integ(rat(1, 1), Cmul(rat(-1, 1), Integ(rat(0, 1), C)))
+	})
+	CC := Split(C, 2)
+	return Integ(rat(0, 1), CC[0]), CC[1]
+}
+
+func TestFixSinCos(t *testing.T) {
+	// sin(x) = x - x^3/6 + x^5/120 - ...
+	// cos(x) = 1 - x^2/2 + x^4/24 - ...
+	S, C := fixSinCos(newCtx(t))
+	checkTerms(t, "sin(x)", S,
+		[]string{"0", "1", "0", "-1/6", "0", "1/120", "0", "-1/5040"})
+	checkTerms(t, "cos(x)", C,
+		[]string{"1", "0", "-1/2", "0", "1/24", "0", "-1/720"})
+}
+
+func TestPythagoreanIdentity(t *testing.T) {
+	// sin^2(x) + cos^2(x) = 1
+	S, C := fixSinCos(newCtx(t))
+	SS := Split(S, 2)
+	CC := Split(C, 2)
+	one := Add(Mul(SS[0], SS[1]), Mul(CC[0], CC[1]))
+	checkTerms(t, "sin^2+cos^2", one,
+		[]string{"1", "0", "0", "0", "0", "0", "0", "0"})
+}
+
+func TestFixTanODE(t *testing.T) {
+	// tan' = 1 + tan^2, tan(0) = 0, must agree with rev(arctan).
+	ctx := newCtx(t)
+	tanRev := Rev(Integ(rat(0, 1), Msubst(Ones(ctx), rat(-1, 1), 2)))
+	tanODE := Fix(ctx, func(T PS) PS {
+		TT := Split(T, 2)
+		return Integ(rat(0, 1), Add(Series(ctx, rat(1, 1)), Mul(TT[0], TT[1])))
+	})
+	for i := 0; i < 16; i++ {
+		a, b := tanRev.Get(), tanODE.Get()
+		if a.Cmp(b) != 0 {
+			t.Fatalf("term %d: rev(arctan)=%s, ODE=%s", i, a.RatString(), b.RatString())
+		}
+	}
+}
+
 func TestSubst(t *testing.T) {
 	// 1/(1-x) with x^2 substituted: 1/(1-x^2) = 1 + x^2 + x^4 + ...
 	ctx := newCtx(t)
