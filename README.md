@@ -1,6 +1,6 @@
 # squint
 
-M. Douglas McIlroy의 논문 *Squinting at Power Series*에 나오는 멱급수(power series)
+M. Douglas McIlroy의 논문 [Squinting at Power Series](squint.pdf)에 나오는 멱급수(power series)
 스트림 연산들을 Go의 고루틴과 채널로 구현한 패키지입니다.
 
 멱급수는 유리수 계수(`math/big.Rat`)의 무한 스트림으로 표현되며, 차수는 위치로
