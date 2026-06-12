@@ -64,4 +64,12 @@ func main() {
 			squint.Add(squint.Series(ctx, one), squint.Mul(TT[0], TT[1])))
 	})
 	printTerms("tan(x), tan'=1+tan^2", tan2, 30)
+
+	// tan(x) another different way: tan(x) = sin(x)/cos(x)
+	cos2 := squint.Fix(ctx, func(C squint.PS) squint.PS {
+		return squint.Integ(one, squint.Cmul(negOne, squint.Integ(zero, C)))
+	})
+	CC2 := squint.Split(cos2, 2)
+	tan3 := squint.Mul(squint.Integ(zero, CC2[0]), squint.Recip(CC2[1]))
+	printTerms("tan(x), tan=sin/cos", tan3, 30)
 }
